@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>World Cup 2026 Snake Draft</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: #e5e7eb;
+  padding: 20px;
+}
+.container {
+  max-width: 1100px;
+  margin: auto;
+}
+.setup, .draft {
+  background: #020617;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+input, button {
+  padding: 8px;
+  border-radius: 6px;
+  border: none;
+  margin-top: 6px;
+}
+button {
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.teams button {
+  width: 100%;
+  margin-bottom: 5px;
+  text-align: left;
+}
+.player {
+  padding: 10px;
+  border-radius: 8px;
+  background: #020617;
+  margin-bottom: 8px;
+}
+.current {
+  border: 2px solid #22c55e;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+<h1>🏆 World Cup 2026 Snake Draft</h1>
+
+<div class="setup">
+<h2>Draft Setup</h2>
+<label>
+Number of participants (2–12):
+<input type="number" id="numPlayers" min="2" max="12" value="4">
+</label>
+<div id="playerInputs"></div>
+<button onclick="startDraft()">Start Draft</button>
+</div>
+
+<div class="draft" style="display:none;">
+<h2 id="status"></h2>
+
+<div class="grid">
+  <div>
+    <h3>Available Teams</h3>
+    <div class="teams" id="teams"></div>
+  </div>
+  <div>
+    <h3>Players</h3>
+    <div id="players"></div>
+  </div>
+</div>
+
+<button id="csvBtn" style="display:none;" onclick="downloadCSV()">Download CSV</button>
+<button onclick="resetDraft()">Reset Draft</button>
+</div>
+</div>
+
+<script>
+const ALL_TEAMS = [
+"Canada","Mexico","United States","Japan","New Zealand","Iran",
+"Argentina","Uzbekistan","Jordan","South Korea","Australia",
+"Brazil","Ecuador","Paraguay","Uruguay","Colombia",
+"Morocco","Egypt","Tunisia","Algeria","Ghana","Cape Verde",
+"Qatar","Saudi Arabia","Senegal","South Africa","Ivory Coast",
+"England","France","Croatia","Portugal","Norway","Germany",
+"Netherlands","Switzerland","Scotland","Spain","Austria","Belgium",
+"Panama","Curaçao","Haiti","Bosnia and Herzegovina","Sweden",
+"Turkey","Czech Republic","DR Congo","Iraq"
+];
+
+let players = [];
+let availableTeams = [];
+let currentPick = 0;
+let direction = 1;
+
+const playerInputsDiv = document.getElementById("playerInputs");
+
+function renderPlayerInputs() {
+  playerInputsDiv.innerHTML = "";
+  const n = document.getElementById("numPlayers").value;
+  for (let i = 0; i < n; i++) {
+    const input = document.createElement("input");
+    input.value = `Player ${i + 1}`;
+    playerInputsDiv.appendChild(input);
+  }
+}
+document.getElementById("numPlayers").addEventListener("change", renderPlayerInputs);
+renderPlayerInputs();
+
+function startDraft() {
+  players = [...playerInputsDiv.querySelectorAll("input")].map(i => ({
+    name: i.value,
+    teams: []
+  }));
+  availableTeams = [...ALL_TEAMS];
+  currentPick = 0;
+  direction = 1;
+
+  document.querySelector(".setup").style.display = "none";
+  document.querySelector(".draft").style.display = "block";
+  render();
+}
+
+function render() {
+  if (availableTeams.length === 0) {
+    document.getElementById("status").innerText = "Draft complete ✅";
+    document.getElementById("csvBtn").style.display = "inline-block";
+    return;
+  }
+  const round = Math.floor(totalPicks() / players.length) + 1;
+  document.getElementById("status").innerText =
+    `Round ${round} — ${players[currentPick].name}'s pick`;
+  renderTeams();
+  renderPlayers();
+}
+
+function renderTeams() {
+  const div = document.getElementById("teams");
+  div.innerHTML = "";
+  availableTeams.forEach(team => {
+    const btn = document.createElement("button");
+    btn.innerText = team;
+    btn.onclick = () => draftTeam(team);
+    div.appendChild(btn);
+  });
+}
+
+function renderPlayers() {
+  const div = document.getElementById("players");
+  div.innerHTML = "";
+  players.forEach((p, i) => {
+    const el = document.createElement("div");
+    el.className = "player" + (i === currentPick ? " current" : "");
+    el.innerHTML = `<strong>${p.name}</strong><br>${p.teams.join(", ") || "—"}`;
+    div.appendChild(el);
+  });
+}
+
+function draftTeam(team) {
+  players[currentPick].teams.push(team);
+  availableTeams = availableTeams.filter(t => t !== team);
+  advancePick();
+  render();
+}
+
+function advancePick() {
+  if (direction === 1 && currentPick === players.length - 1) direction = -1;
+  else if (direction === -1 && currentPick === 0) direction = 1;
+  else currentPick += direction;
+}
+
+function totalPicks() {
+  return players.reduce((s, p) => s + p.teams.length, 0);
+}
+
+function downloadCSV() {
+  let rows = [["Player","Team"]];
+  players.forEach(p => {
+    p.teams.forEach(t => rows.push([p.name, t]));
+  });
+
+  const csv = rows.map(r => r.join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "world-cup-2026-draft.csv";
+  a.click();
+}
+
+function resetDraft() {
+  location.reload();
+}
+</script>
+</body>
+</html>
